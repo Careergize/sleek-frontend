@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    section[id] {
+        scroll-margin-top: 80px;
+    }
+
+    body {
+        background-color: #0B1120;
+        color: #FFFFFF;
+        font-family: "Roboto", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: "Roboto", sans-serif;
+        font-weight: 700;
+    }
+
+    ::selection {
+        background-color: rgba(245, 183, 84, 0.3);
+        color: #FFFFFF;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #0B1120;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #1E2A3B;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #F5B754;
+    }
+}
+
+@layer utilities {
+    .text-gradient-gold {
+        background: linear-gradient(135deg, #F5B754 0%, #FAD07E 50%, #CC8F1A 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .section-padding {
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+    }
+
+    .container-custom {
+        width: 100%;
+        max-width: 1280px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    .glass-card {
+        background: rgba(17, 24, 39, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(30, 42, 59, 0.8);
+    }
+
+    .perspective-1000 {
+        perspective: 1000px;
+    }
+
+}
+
+
+@keyframes marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.body-text {
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 27.3px;
+    letter-spacing: 0%;
+}
+
+.spaced-text {
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 17.1px;
+    letter-spacing: 10.26px;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+
+.testimonial-card {
+    border: #101721 solid 9px;
+    border-radius: 35% 50% 50% 35%;
+}
