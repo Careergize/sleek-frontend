@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 
-const LOGIN_ENDPOINT = "http://api.sleek-cars.com/login/";
+const LOGIN_ENDPOINT = "https://api.sleek-cars.com/login/";
 
 const LoginPage = () => {
     const [email, setEmail] = useState("");
