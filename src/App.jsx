@@ -23,6 +23,7 @@ import RecommendedCars from "@/sections/RecommendedCars"
 
 import CarOfferPage from "@/pages/CarOfferPage"
 import Cars from "@/pages/Cars"
+import ContactPage from "@/pages/contact"
 import LoginPage from "@/pages/Login"
 import AdminDashboard from "@/pages/AdminDashboard"
 import FleetManagement from "@/pages/FleetManagement"
@@ -82,6 +83,7 @@ const App = () => {
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/cars" element={<Cars />} />
+                    <Route path="/contact" element={<ContactPage />} />
                     <Route path="/car/:id" element={<CarOfferPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminDashboard />} />
