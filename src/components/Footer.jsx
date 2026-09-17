@@ -208,7 +208,7 @@ const Footer = () => {
                         <div className="space-y-6">
                             <div>
                                 <h5 className="text-[10px] font-black tracking-[0.4em] uppercase opacity-20 mb-4">Call Us</h5>
-                                <a href="tel:00971507023905" className="text-sm font-bold hover:text-white transition-colors tracking-widest">+00971 50 702 3905</a>
+                                <a href="tel:00971507023905" className="text-sm font-bold hover:text-white transition-colors tracking-widest">+971 50 702 3905</a>
                             </div>
                             <div>
                                 <h5 className="text-[10px] font-black tracking-[0.4em] uppercase opacity-20 mb-4">Write to us</h5>
