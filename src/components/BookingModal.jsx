@@ -107,6 +107,23 @@ const BookingModal = ({ car, onClose }) => {
         return foundUrl
     }
 
+    // Triggers the confirmation email for a created booking.
+    // Errors are swallowed on purpose: the booking itself already succeeded,
+    // so a failed email should never show the user a "Booking Failed" screen.
+    const sendBookingEmail = async (bookingId) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/send-email/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            })
+            if (!res.ok) {
+                console.error("Send-email request failed with status", res.status)
+            }
+        } catch (err) {
+            console.error("Send-email error:", err)
+        }
+    }
+
     const handleConfirmBooking = async () => {
         if (bookingDetails.payNow && !isPreBookAmountValid) {
             setError("Please enter a valid amount greater than 0 to pre-book.")
@@ -152,6 +169,7 @@ const BookingModal = ({ car, onClose }) => {
             }
 
             const data = await response.json()
+            const bookingId = data.id // adjust if your API nests it, e.g. data.booking?.id
 
             // Decide based on what the server actually returned, not on local
             // `payNow` state — this avoids any frontend/backend state mismatch
@@ -176,6 +194,11 @@ const BookingModal = ({ car, onClose }) => {
                 // rather than silently falling through to "booking confirmed".
                 console.error("Expected checkout URL but none was returned:", data)
                 throw new Error("Payment setup failed. Please try again.")
+            }
+
+            // Pay Later booking succeeded -> send the confirmation email
+            if (bookingId) {
+                sendBookingEmail(bookingId) // intentionally not awaited, so the UI isn't blocked
             }
 
             setBookingConfirmed(true)
