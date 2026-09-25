@@ -59,12 +59,14 @@ const BookingModal = ({ car, onClose }) => {
     const discount = bookingDetails.payNow ? basePrice * 0.05 : 0
     const vat = (basePrice - discount) * 0.05
     const totalPrice = basePrice - discount + vat
+    const minPreBookAmount = totalPrice / 2
     const preBookAmountNum = parseFloat(bookingDetails.preBookAmount)
-    const isPreBookAmountValid = !isNaN(preBookAmountNum) && preBookAmountNum > 0
+    const isPreBookAmountValid = !isNaN(preBookAmountNum) && preBookAmountNum >= minPreBookAmount
 
     const submittedAmount = bookingDetails.payNow
         ? (isPreBookAmountValid ? preBookAmountNum : 0)
         : parseFloat(totalPrice.toFixed(2))
+    const bookingStatus = "confirmed"
 
     const handleInputChange = (field) => (e) => {
         setBookingDetails(prev => ({ ...prev, [field]: e.target.value }))
@@ -126,7 +128,7 @@ const BookingModal = ({ car, onClose }) => {
 
     const handleConfirmBooking = async () => {
         if (bookingDetails.payNow && !isPreBookAmountValid) {
-            setError("Please enter a valid amount greater than 0 to pre-book.")
+            setError(`Please enter at least AED ${minPreBookAmount.toFixed(0)} (50% of the total) to pre-book.`)
             return
         }
         setLoading(true)
@@ -145,7 +147,7 @@ const BookingModal = ({ car, onClose }) => {
             baby_seat: bookingDetails.babySeat,
             pay_now: bookingDetails.payNow,
             total_price: parseFloat(submittedAmount.toFixed(2)),
-            status: "pending"
+            status: bookingStatus
         }
 
         try {
@@ -185,6 +187,9 @@ const BookingModal = ({ car, onClose }) => {
             if (isValidCheckoutUrl) {
                 // Redirect user to payment portal. Keep loading=true (don't reset it)
                 // so the button stays disabled/no other state can render while navigation happens.
+                // NOTE: the confirmation email for Pay Now bookings must NOT be sent here.
+                // It is only sent once the payment gateway confirms the payment
+                // (e.g. via a webhook or the payment return/callback endpoint on the backend).
                 window.location.assign(checkoutUrl)
                 return
             }
@@ -196,7 +201,7 @@ const BookingModal = ({ car, onClose }) => {
                 throw new Error("Payment setup failed. Please try again.")
             }
 
-            // Pay Later booking succeeded -> send the confirmation email
+            // Pay Later booking succeeded (status is already "confirmed") -> send the confirmation email
             if (bookingId) {
                 sendBookingEmail(bookingId) // intentionally not awaited, so the UI isn't blocked
             }
@@ -445,13 +450,16 @@ const BookingModal = ({ car, onClose }) => {
                                     <Input
                                         type="number"
                                         inputMode="decimal"
-                                        min="1"
+                                        min={minPreBookAmount}
                                         step="any"
-                                        placeholder="Enter amount to pre-book"
+                                        placeholder={`Minimum AED ${minPreBookAmount.toFixed(0)}`}
                                         value={bookingDetails.preBookAmount}
                                         onChange={handleInputChange("preBookAmount")}
                                         className="rounded-lg"
                                     />
+                                    <p className="font-body text-caption text-brand-gray">
+                                        Minimum 50% of total: AED {minPreBookAmount.toFixed(0)} (full total AED {totalPrice.toFixed(0)})
+                                    </p>
                                     <div className="flex justify-between items-center min-h-7 border-t border-brand-border pt-2">
                                         {isPreBookAmountValid ? (
                                             <>
@@ -459,7 +467,9 @@ const BookingModal = ({ car, onClose }) => {
                                                 <span className="font-heading font-bold text-brand-gold text-body">AED {preBookAmountNum.toLocaleString()}</span>
                                             </>
                                         ) : bookingDetails.preBookAmount !== "" ? (
-                                            <p className="font-body text-body text-red-400">Please enter a valid amount greater than 0.</p>
+                                            <p className="font-body text-body text-red-400">
+                                                Minimum AED {minPreBookAmount.toFixed(0)} required (50% of total).
+                                            </p>
                                         ) : (
                                             <span className="font-body text-body text-brand-gray">Enter an amount to continue</span>
                                         )}
