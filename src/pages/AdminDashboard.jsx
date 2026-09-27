@@ -23,6 +23,7 @@ import { API_BASE_URL } from "@/config";
 
 const AdminDashboard = () => {
     const [cars, setCars] = useState([]);
+    const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [selectedCar, setSelectedCar] = useState(null);
@@ -35,6 +36,9 @@ const AdminDashboard = () => {
 
     const itemsPerPage = 15;
     const navigate = useNavigate();
+    const activeRentedCount = bookings.filter((booking) =>
+        ["confirmed", "ongoing"].includes(String(booking.status || "").trim().toLowerCase())
+    ).length;
 
     // =========================
     // AUTH CHECK
@@ -97,6 +101,22 @@ const AdminDashboard = () => {
         };
 
         fetchCars();
+    }, []);
+
+    useEffect(() => {
+        const fetchBookings = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/bookings/`);
+                if (!response.ok) throw new Error("Failed to fetch bookings");
+
+                const data = await response.json();
+                setBookings(Array.isArray(data) ? data : data.results || []);
+            } catch (error) {
+                console.error("Error fetching bookings:", error);
+            }
+        };
+
+        fetchBookings();
     }, []);
 
     // =========================
@@ -286,7 +306,7 @@ const AdminDashboard = () => {
                     </span>
 
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500">
-                        {cars.filter(c => c.status === "Rented").length}
+                        {activeRentedCount}
                     </span>
                 </Link>
 
@@ -404,7 +424,7 @@ const AdminDashboard = () => {
 
                         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
                             <h3 className="text-3xl font-black text-yellow-500">
-                                {cars.filter(c => c.status === "Rented").length}
+                                {activeRentedCount}
                             </h3>
 
                             <p className="text-gray-400 text-xs uppercase mt-2">

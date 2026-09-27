@@ -17,15 +17,11 @@ import {
 
 import { API_BASE_URL } from "@/config";
 
-// Bookings counted as "current/active" are ones whose status is in this list.
-// Your API returned "pending" as an example — add/remove values here once you
-// know the full set your backend uses (e.g. "confirmed", "completed", "cancelled").
-// Statuses NOT in this list (e.g. "completed", "cancelled") are excluded from
-// the active count and the green "Fleet Status" bar.
-const ACTIVE_BOOKING_STATUSES = ["pending", "confirmed", "ongoing"];
+// Pending requests are not active rentals until they are confirmed.
+const ACTIVE_BOOKING_STATUSES = ["confirmed", "ongoing"];
 
 const isActiveBooking = (booking) =>
-    ACTIVE_BOOKING_STATUSES.includes(String(booking.status).toLowerCase());
+    ACTIVE_BOOKING_STATUSES.includes(String(booking.status).trim().toLowerCase());
 
 // Groups bookings into the last 6 calendar months (oldest -> newest) using
 // created_at, i.e. when the booking was made. Switch to pickup_date below if
@@ -350,7 +346,7 @@ const Analytics = () => {
                             </h3>
 
                             <p className="text-[10px] text-brand-gray font-black uppercase tracking-widest mt-1">
-                                Active Bookings
+                                Active Rentals
                             </p>
 
                         </div>
@@ -529,7 +525,7 @@ const Analytics = () => {
                     <div className="mt-12 bg-brand-card rounded-2xl border border-white/5 p-8">
 
                         <h3 className="font-heading font-bold text-xl uppercase tracking-widest mb-8">
-                            Cars From Django API
+                            Cars 
                         </h3>
 
                         {cars.length === 0 ? (
@@ -604,7 +600,7 @@ const Analytics = () => {
                     <div className="mt-12 bg-brand-card rounded-2xl border border-white/5 p-8">
 
                         <h3 className="font-heading font-bold text-xl uppercase tracking-widest mb-8">
-                            Bookings From Django API
+                            Bookings
                         </h3>
 
                         {bookings.length === 0 ? (

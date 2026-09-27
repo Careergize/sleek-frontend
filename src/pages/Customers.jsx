@@ -50,8 +50,8 @@ const Customers = () => {
                 if (bRes.ok && cRes.ok) {
                     const bData = await bRes.json();
                     const cData = await cRes.json();
-                    setBookings(bData);
-                    setCars(cData);
+                    setBookings(Array.isArray(bData) ? bData : bData.results || []);
+                    setCars(Array.isArray(cData) ? cData : cData.results || []);
                 }
             } catch (err) {
                 console.error("Error fetching admin data:", err);
@@ -62,39 +62,12 @@ const Customers = () => {
         fetchData();
     }, []);
 
-    // Derive unique customers from bookings list
-    const customers = useMemo(() => {
-        const customerMap = {};
-        bookings.forEach(b => {
-            const email = b.email?.toLowerCase();
-            if (!customerMap[email]) {
-                customerMap[email] = {
-                    id: b.id,
-                    name: b.name,
-                    email: b.email,
-                    phone: b.phone,
-                    bookings: 0,
-                    totalSpent: 0,
-                    status: "Active",
-                    lastBooking: b.created_at?.split('T')[0],
-                    latestBookingObj: b
-                };
-            }
-            customerMap[email].bookings += 1;
-            customerMap[email].totalSpent += parseFloat(b.total_price || 0);
-            
-            // Update last activity if this booking is newer
-            if (new Date(b.created_at) > new Date(customerMap[email].lastBooking)) {
-                customerMap[email].lastBooking = b.created_at?.split('T')[0];
-                customerMap[email].latestBookingObj = b;
-            }
-        });
-        return Object.values(customerMap);
-    }, [bookings]);
-
     // Format recent bookings for the top section
     const recentBookingsList = useMemo(() => {
-        return [...bookings].reverse().slice(0, 2).map(b => {
+        return [...bookings]
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 2)
+            .map(b => {
             const carObj = cars.find(c => c.id === b.car);
             return {
                 id: `BK-${b.id}`,
@@ -108,6 +81,17 @@ const Customers = () => {
             };
         });
     }, [bookings, cars]);
+
+    const filteredBookings = useMemo(() => {
+        const query = searchQuery.toLowerCase();
+        return [...bookings]
+            .filter(booking =>
+                booking.name?.toLowerCase().includes(query) ||
+                booking.email?.toLowerCase().includes(query) ||
+                booking.phone?.toLowerCase().includes(query)
+            )
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }, [bookings, searchQuery]);
 
     const handleLogout = () => {
         localStorage.removeItem("isSleekAuthenticated");
@@ -248,7 +232,7 @@ const Customers = () => {
                     <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 hover:bg-white/5 rounded-lg lg:hidden text-brand-gray hover:text-white">
                         <Menu size={24} />
                     </button>
-                    <h2 className="font-heading font-bold text-xl uppercase tracking-widest hidden sm:block">Customer Database</h2>
+                    <h2 className="font-heading font-bold text-xl uppercase tracking-widest hidden sm:block">Booking Database</h2>
                     <div className="w-10 h-10 rounded-full bg-brand-gold flex items-center justify-center text-brand-dark font-black">AD</div>
                 </header>
 
@@ -296,7 +280,7 @@ const Customers = () => {
                     {/* Customer Table */}
                     <div className="bg-brand-card rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
                         <div className="p-6 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <h2 className="font-heading font-bold text-lg uppercase tracking-widest">Master List</h2>
+                            <h2 className="font-heading font-bold text-lg uppercase tracking-widest">All Bookings</h2>
                             <div className="relative w-full max-w-md group">
                                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${searchQuery ? 'text-brand-gold' : 'text-brand-gray'}`} size={16} />
                                 <input 
@@ -314,52 +298,49 @@ const Customers = () => {
                                 <thead>
                                     <tr className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gray bg-white/5">
                                         <th className="px-6 py-5">Client Information</th>
-                                        <th className="px-6 py-5">Statistics</th>
-                                        <th className="px-6 py-5">Last Activity</th>
+                                        <th className="px-6 py-5">Booking</th>
+                                        <th className="px-6 py-5">Created</th>
                                         <th className="px-6 py-5">Status</th>
                                         <th className="px-6 py-5 text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {customers.filter(c => 
-                                        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                        c.email.toLowerCase().includes(searchQuery.toLowerCase())
-                                    ).map((client) => (
-                                        <tr key={client.id} className="hover:bg-white/[0.02] transition-colors group">
+                                    {filteredBookings.map((booking) => (
+                                        <tr key={booking.id} className="hover:bg-white/[0.02] transition-colors group">
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-brand-gold/30 transition-colors">
                                                         <User size={18} className="text-brand-gray group-hover:text-brand-gold" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-sm uppercase tracking-tight">{client.name}</p>
+                                                        <p className="font-bold text-sm uppercase tracking-tight">{booking.name}</p>
                                                         <div className="flex items-center gap-3 mt-0.5">
-                                                            <span className="flex items-center gap-1 text-[10px] text-brand-gray lowercase"><Mail size={10} /> {client.email}</span>
-                                                            <span className="flex items-center gap-1 text-[10px] text-brand-gray"><Phone size={10} /> {client.phone}</span>
+                                                            <span className="flex items-center gap-1 text-[10px] text-brand-gray lowercase"><Mail size={10} /> {booking.email}</span>
+                                                            <span className="flex items-center gap-1 text-[10px] text-brand-gray"><Phone size={10} /> {booking.phone}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-[10px] font-black uppercase text-white/80">{client.bookings} Bookings</span>
-                                                    <span className="text-[10px] font-bold text-brand-gold italic">AED {client.totalSpent.toLocaleString()} Total</span>
+                                                    <span className="text-[10px] font-black uppercase text-white/80">BK-{booking.id}</span>
+                                                    <span className="text-[10px] font-bold text-brand-gold italic">AED {parseFloat(booking.total_price || 0).toLocaleString()}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-2 text-brand-gray text-[10px] font-bold uppercase tracking-wider">
-                                                    <Clock size={12} className="text-white/20" /> {client.lastBooking}
+                                                    <Clock size={12} className="text-white/20" /> {booking.created_at?.split('T')[0] || "-"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border
-                                                    ${client.status === 'Active' ? 'bg-green-500/5 text-green-400 border-green-500/20' : 'bg-white/5 text-brand-gray border-white/10'}`}>
-                                                    {client.status}
+                                                    ${booking.status === 'confirmed' || booking.status === 'completed' ? 'bg-green-500/5 text-green-400 border-green-500/20' : booking.status === 'pending' ? 'bg-yellow-500/5 text-yellow-400 border-yellow-500/20' : 'bg-white/5 text-brand-gray border-white/10'}`}>
+                                                    {booking.status || "Unknown"}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <button 
-                                                    onClick={() => setViewingBooking(client.latestBookingObj)}
+                                                    onClick={() => setViewingBooking(booking)}
                                                     className="p-2.5 bg-white/5 hover:bg-brand-gold/10 rounded-xl text-brand-gray hover:text-brand-gold transition-all cursor-pointer border-none"
                                                 >
                                                     <Eye size={18} />
@@ -375,7 +356,7 @@ const Customers = () => {
                     {/* Summary Footer */}
                     <div className="mt-8 flex justify-between items-center px-4">
                         <p className="text-[10px] text-brand-gray font-black uppercase tracking-widest">
-                            Showing {customers.length} Verified Accounts
+                            Showing {filteredBookings.length} Bookings
                         </p>
                         <button className="text-[10px] text-brand-gold font-black uppercase tracking-widest hover:underline decoration-brand-gold underline-offset-4">
                             Export CSV Report

@@ -104,15 +104,19 @@ const CarsPage = () => {
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 15
 
-    const brands = useMemo(() => {
-        return ["All", ...new Set(fleetCars.map(car => car.brand))]
+    const availableCars = useMemo(() => {
+        return fleetCars.filter(car => !["booked", "rented"].includes(String(car.status || "").toLowerCase()))
     }, [fleetCars])
+
+    const brands = useMemo(() => {
+        return ["All", ...new Set(availableCars.map(car => car.brand))]
+    }, [availableCars])
 
     // ENHANCED SEARCH LOGIC
     const filteredCars = useMemo(() => {
         const query = searchQuery.toLowerCase().trim()
         
-        return fleetCars.filter(car => {
+        return availableCars.filter(car => {
             // 1. Check Brand Filter
             const matchesBrand = selectedBrand === "All" || car.brand === selectedBrand
             if (!matchesBrand) return false
@@ -127,7 +131,7 @@ const CarsPage = () => {
             // Fragment matching
             return query.split(" ").every(word => combinedName.includes(word))
         })
-    }, [searchQuery, selectedBrand, fleetCars])
+    }, [searchQuery, selectedBrand, availableCars])
 
     const paginatedCars = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage
