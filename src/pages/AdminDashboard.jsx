@@ -21,6 +21,10 @@ import {
 
 import { API_BASE_URL } from "@/config";
 
+const isBookedCar = (car) =>
+    ["booked", "rented"].includes(String(car.status || "").trim().toLowerCase());
+const isAvailableCar = (car) => String(car.status || "").trim().toLowerCase() === "available";
+
 const AdminDashboard = () => {
     const [cars, setCars] = useState([]);
     const [bookings, setBookings] = useState([]);
@@ -410,7 +414,7 @@ const AdminDashboard = () => {
                 <div className="p-8">
 
                     {/* STATS */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
 
                         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
                             <h3 className="text-3xl font-black">
@@ -433,8 +437,18 @@ const AdminDashboard = () => {
                         </div>
 
                         <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
+                            <h3 className="text-3xl font-black text-yellow-500">
+                                {cars.filter(isBookedCar).length}
+                            </h3>
+
+                            <p className="text-gray-400 text-xs uppercase mt-2">
+                                Booked Vehicles
+                            </p>
+                        </div>
+
+                        <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
                             <h3 className="text-3xl font-black text-green-400">
-                                {cars.filter(c => c.status === "Available").length}
+                                {cars.filter(isAvailableCar).length}
                             </h3>
 
                             <p className="text-gray-400 text-xs uppercase mt-2">
@@ -478,6 +492,7 @@ const AdminDashboard = () => {
                                             <th className="px-6 py-4">Category</th>
                                             <th className="px-6 py-4">Daily Rate</th>
                                             <th className="px-6 py-4">Location</th>
+                                            <th className="px-6 py-4">Status</th>
                                             <th className="px-6 py-4">Actions</th>
                                         </tr>
                                     </thead>
@@ -523,6 +538,12 @@ const AdminDashboard = () => {
 
                                                 <td className="px-6 py-4 text-sm text-gray-300">
                                                     {car.location}
+                                                </td>
+
+                                                <td className="px-6 py-4">
+                                                    <span className={`text-xs font-bold uppercase ${isBookedCar(car) ? "text-yellow-500" : car.status === "Available" ? "text-green-400" : "text-gray-400"}`}>
+                                                        {isBookedCar(car) ? "Booked" : car.status}
+                                                    </span>
                                                 </td>
 
                                                 <td className="px-6 py-4">

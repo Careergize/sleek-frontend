@@ -22,6 +22,9 @@ import { Input } from "@/components/ui/input";
 
 import { API_BASE_URL } from "@/config";
 
+const normalizeStatus = (status) => String(status || "").trim().toLowerCase();
+const isBookedCar = (car) => ["booked", "rented"].includes(normalizeStatus(car.status));
+
 const FleetManagement = () => {
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -171,7 +174,10 @@ const FleetManagement = () => {
             car.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
             car.overview?.bodyType?.toLowerCase().includes(searchQuery.toLowerCase());
             
-        const matchesStatus = filterStatus === "All" || car.status === filterStatus;
+        const normalizedStatus = normalizeStatus(car.status);
+        const matchesStatus = filterStatus === "All"
+            || (filterStatus === "Booked" && isBookedCar(car))
+            || normalizedStatus === normalizeStatus(filterStatus);
         return matchesSearch && matchesStatus;
     });
 
@@ -246,8 +252,8 @@ const FleetManagement = () => {
                     <div className="flex flex-wrap gap-2 mb-8 bg-white/5 p-1 rounded-2xl w-fit">
                         {[
                             { id: 'All', label: 'All Units', count: cars.length, icon: Car },
-                            { id: 'Rented', label: 'Booked', count: cars.filter(c => c.status === 'Rented').length, icon: Clock, color: 'text-brand-gold' },
-                            { id: 'Available', label: 'Available', count: cars.filter(c => c.status === 'Available').length, icon: Calendar, color: 'text-green-400' },
+                            { id: 'Booked', label: 'Booked', count: cars.filter(isBookedCar).length, icon: Clock, color: 'text-brand-gold' },
+                            { id: 'Available', label: 'Available', count: cars.filter(c => normalizeStatus(c.status) === 'available').length, icon: Calendar, color: 'text-green-400' },
                             { id: 'Maintenance', label: 'Service', count: cars.filter(c => c.status === 'Maintenance').length, icon: AlertTriangle, color: 'text-red-400' },
                         ].map((tab) => (
                             <button
@@ -313,11 +319,11 @@ const FleetManagement = () => {
                                                 <span className="text-sm font-black text-brand-gold italic">AED {car.priceDay.toLocaleString()}</span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border
-                                                    ${car.status === 'Available' ? 'bg-green-500/5 text-green-400 border-green-500/20' : 
-                                                      car.status === 'Rented' ? 'bg-brand-gold/5 text-brand-gold border-brand-gold/20' : 
+                                                                                                <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border
+                                                                                                        ${normalizeStatus(car.status) === 'available' ? 'bg-green-500/5 text-green-400 border-green-500/20' : 
+                                                                                                            isBookedCar(car) ? 'bg-brand-gold/5 text-brand-gold border-brand-gold/20' : 
                                                       'bg-red-500/5 text-red-400 border-red-500/20'}`}>
-                                                    {car.status === 'Rented' ? 'Booked' : car.status}
+                                                                                                        {isBookedCar(car) ? 'Booked' : car.status}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
