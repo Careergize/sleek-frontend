@@ -310,6 +310,14 @@ const AdminDashboard = () => {
                 </Link>
 
                 <Link
+                    to="/admin/planner"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 no-underline"
+                >
+                    <Calendar size={18} />
+                    Rental Planner
+                </Link>
+
+                <Link
                     to="/admin/fleet"
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 no-underline"
                 >

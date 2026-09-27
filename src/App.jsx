@@ -30,6 +30,7 @@ import FleetManagement from "@/pages/FleetManagement"
 import Customers from "@/pages/Customers"
 import Analytics from "@/pages/Analytics"
 import BookingResult from "@/pages/BookingResult"
+import CarRentalPlannerPage from "@/pages/CarRentalPlannerPage"
 
 const HomePage = () => {
     const [isLoading, setIsLoading] = useState(true)
@@ -87,6 +88,7 @@ const App = () => {
                     <Route path="/car/:id" element={<CarOfferPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/planner" element={<CarRentalPlannerPage />} />
                     <Route path="/admin/fleet" element={<FleetManagement />} />
                     <Route path="/admin/customers" element={<Customers />} />
                     <Route path="/admin/analytics" element={<Analytics />} />

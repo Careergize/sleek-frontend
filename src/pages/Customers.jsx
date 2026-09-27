@@ -118,6 +118,9 @@ const Customers = () => {
                 <Link to="/admin" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-brand-gray hover:text-brand-white hover:bg-white/5 no-underline">
                     <LayoutDashboard size={18} /> Dashboard
                 </Link>
+                <Link to="/admin/planner" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-brand-gray hover:text-brand-white hover:bg-white/5 no-underline">
+                    <Calendar size={18} /> Rental Planner
+                </Link>
                 <Link to="/admin/fleet" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-brand-gray hover:text-brand-white hover:bg-white/5 no-underline">
                     <Car size={18} /> Fleet Management
                 </Link>
