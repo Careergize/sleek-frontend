@@ -230,14 +230,24 @@ const AdminDashboard = () => {
             );
 
             if (!response.ok) {
-                throw new Error("Delete failed");
+                const responseText = await response.text();
+                let errorMessage = responseText || `Request failed with status ${response.status}`;
+
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                } catch {
+                    // Keep the response text when the API does not return JSON.
+                }
+
+                throw new Error(errorMessage);
             }
 
-            setCars((prev) => prev.filter((car) => car.id !== id));
+            setCars((prev) => prev.filter((car) => String(car.id) !== String(id)));
 
         } catch (error) {
             console.error("Delete Error:", error);
-            alert("Failed to delete car");
+            alert(`Failed to delete car: ${error.message}`);
         }
     };
 

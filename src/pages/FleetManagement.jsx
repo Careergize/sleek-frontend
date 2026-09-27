@@ -16,7 +16,8 @@ import {
     X,
     LogOut,
     Menu,
-    AlertTriangle
+    AlertTriangle,
+    Loader2
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 
@@ -31,6 +32,9 @@ const FleetManagement = () => {
     const [error, setError] = useState(null);
 
     const [selectedCar, setSelectedCar] = useState(null);
+    const [carToDelete, setCarToDelete] = useState(null);
+    const [deleteError, setDeleteError] = useState("");
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState("All");
@@ -97,7 +101,9 @@ const FleetManagement = () => {
         formData.append('mileage_limit', selectedCar.mileageLimit || 0);
         formData.append('additional_mileage', selectedCar.additionalMileage || "0.00");
         formData.append('min_rental', selectedCar.minRental || 1);
-        formData.append('status', selectedCar.status);
+        if (!isNew) {
+            formData.append('status', selectedCar.status);
+        }
         formData.append('location', selectedCar.location || "Dubai Marina, Dubai");
         formData.append('description', selectedCar.description || "Premium rental vehicle.");
         formData.append('specs', JSON.stringify(selectedCar.specs || {}));
@@ -146,6 +152,45 @@ const FleetManagement = () => {
             setSelectedCar(null);
         } catch (err) {
             console.error("Save error:", err);
+        }
+    };
+
+    const handleDeleteCar = (car) => {
+        setCarToDelete(car);
+        setDeleteError("");
+    };
+
+    const confirmDeleteCar = async () => {
+        if (!carToDelete || isDeleting) return;
+
+        setIsDeleting(true);
+        setDeleteError("");
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/cars/${carToDelete.id}/`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text();
+                let errorMessage = responseText || `Request failed with status ${response.status}`;
+
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                } catch {
+                    // Keep the response text when the API does not return JSON.
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            setCars(prev => prev.filter(car => String(car.id) !== String(carToDelete.id)));
+            setCarToDelete(null);
+        } catch (err) {
+            console.error("Delete error:", err);
+            setDeleteError(err.message || "Failed to delete vehicle. Please try again.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -329,7 +374,7 @@ const FleetManagement = () => {
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <button onClick={() => { setSelectedCar(car); setIsEditing(true); }} className="p-2.5 hover:bg-white/10 rounded-xl text-brand-gray hover:text-white transition-all"><Edit size={16} /></button>
-                                                    <button className="p-2.5 hover:bg-red-500/10 rounded-xl text-brand-gray hover:text-red-400 transition-all"><Trash2 size={16} /></button>
+                                                    <button onClick={() => handleDeleteCar(car)} className="p-2.5 hover:bg-red-500/10 rounded-xl text-brand-gray hover:text-red-400 transition-all"><Trash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -363,6 +408,70 @@ const FleetManagement = () => {
                     )}
                 </div>
             </main>
+
+            <AnimatePresence>
+                {carToDelete && (
+                    <motion.div
+                        className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <button
+                            type="button"
+                            aria-label="Close delete confirmation"
+                            disabled={isDeleting}
+                            onClick={() => setCarToDelete(null)}
+                            className="absolute inset-0 bg-black/75 backdrop-blur-sm border-0 cursor-default disabled:cursor-wait"
+                        />
+                        <motion.div
+                            role="alertdialog"
+                            aria-modal="true"
+                            aria-labelledby="delete-vehicle-title"
+                            className="relative w-full max-w-md rounded-2xl border border-red-500/20 bg-brand-card p-6 shadow-2xl"
+                            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                        >
+                            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                                <Trash2 size={21} />
+                            </div>
+                            <h2 id="delete-vehicle-title" className="text-xl font-black uppercase tracking-tight text-brand-white">
+                                Delete vehicle?
+                            </h2>
+                            <p className="mt-2 text-sm leading-relaxed text-brand-gray">
+                                Delete <span className="font-bold text-brand-white">{carToDelete.brand} {carToDelete.name}</span> from the fleet? This action cannot be undone.
+                            </p>
+
+                            {deleteError && (
+                                <div role="alert" className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+                                    {deleteError}
+                                </div>
+                            )}
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    disabled={isDeleting}
+                                    onClick={() => setCarToDelete(null)}
+                                    className="rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-sm font-bold text-brand-gray transition-colors hover:bg-white/5 hover:text-brand-white disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isDeleting}
+                                    onClick={confirmDeleteCar}
+                                    className="flex items-center gap-2 rounded-lg border-0 bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-600 disabled:cursor-wait disabled:opacity-60"
+                                >
+                                    {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                    {isDeleting ? "Deleting..." : "Delete vehicle"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {isEditing && selectedCar && (
