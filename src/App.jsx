@@ -31,6 +31,7 @@ import Customers from "@/pages/Customers"
 import Analytics from "@/pages/Analytics"
 import BookingResult from "@/pages/BookingResult"
 import CarRentalPlannerPage from "@/pages/CarRentalPlannerPage"
+    import TermsAndConditions from "@/pages/TermsAndConditions"
 
 const HomePage = () => {
     const [isLoading, setIsLoading] = useState(true)
@@ -85,6 +86,7 @@ const App = () => {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/cars" element={<Cars />} />
                     <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                     <Route path="/car/:id" element={<CarOfferPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/admin" element={<AdminDashboard />} />

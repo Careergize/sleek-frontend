@@ -5,11 +5,11 @@ export const faqItems = [
     },
     {
         question: "What is the minimum age requirement to rent a car?",
-        answer: "The minimum age to rent a car in Dubai is 21 years old. For luxury and sports vehicles, the minimum age is 25 years. A young driver surcharge may apply for drivers under 25.",
+        answer: "Drivers must be at least 25 years old, hold a valid UAE or international driver's licence, and have at least 5 years of driving experience.",
     },
     {
         question: "Is insurance included in the car rental price?",
-        answer: "Yes, basic comprehensive insurance is included in all our rental prices. This covers third-party liability and accidental damage. Additional coverage options such as collision damage waiver and personal accident insurance are available.",
+        answer: "Rental prices include maintenance and third-party insurance within UAE legal limits. 5% VAT, fuel costs and Salik toll charges are not included in the rental rate. Please confirm the coverage and exclusions in your rental agreement.",
     },
     {
         question: "Is there a mileage limit on rentals?",

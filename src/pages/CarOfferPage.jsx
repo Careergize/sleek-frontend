@@ -11,6 +11,7 @@ import { useApp } from "@/context/AppContext"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import BookingModal from "@/components/BookingModal"
+import RentalConditions from "@/components/RentalConditions"
 
 // --- THEMED SUB-COMPONENTS ---
 
@@ -280,6 +281,10 @@ const CarOfferPage = () => {
                                 <FeatureAccordion title="Safety & Infotainment" items={[...car.features.safety, ...car.features.infotainment]} />
                             </div>
                         </section>
+                    </div>
+
+                    <div className="max-w-4xl mb-16">
+                        <RentalConditions />
                     </div>
 
                     {/* Description */}

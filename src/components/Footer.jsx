@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { motion, useInView, AnimatePresence } from "motion/react"
 import { ArrowUpRight, Send, Phone, Mail, MapPin, CheckCircle2, X } from "lucide-react"
 
@@ -232,6 +233,7 @@ const Footer = () => {
             {/* Final Copyright */}
             <div className="p-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-[10px] font-black tracking-[0.3em] uppercase text-white/20">
                 <span>© POWERD BY CAREERGIZE LLP</span>
+                <Link to="/terms-and-conditions" className="text-white/60 hover:text-white transition-colors py-3">Terms &amp; Conditions</Link>
                 <span>Designed for the Elite</span>
             </div>
         </footer>

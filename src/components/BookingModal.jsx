@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Calendar, Clock, User, Mail, Phone, Baby, X, Check } from "lucide-react"
+import { Calendar, Clock, User, Mail, Phone, Baby, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
     Select,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select"
 
 import { API_BASE_URL } from "@/config"
+import RentalConditions from "@/components/RentalConditions"
+import { bookingPrice, validateBooking } from "@/lib/booking"
 
 const TIME_OPTIONS = [
     "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
@@ -27,21 +29,10 @@ const initialBookingState = {
     phone: "",
     email: "",
     babySeat: false,
-    payNow: false,
-    preBookAmount: "",
-}
-
-// Helper to calculate number of days
-const calculateDays = (pickup, dropoff) => {
-    if (!pickup || !dropoff) return 1
-    const diffTime = new Date(dropoff) - new Date(pickup)
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays > 0 ? diffDays : 1
 }
 
 const BookingModal = ({ car, onClose }) => {
     const [bookingDetails, setBookingDetails] = useState(initialBookingState)
-    const [bookingConfirmed, setBookingConfirmed] = useState(false)
     const [bookingFailed, setBookingFailed] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -53,20 +44,8 @@ const BookingModal = ({ car, onClose }) => {
         }
     }, [])
 
-    const numberOfDays = calculateDays(bookingDetails.pickupDate, bookingDetails.dropoffDate)
+    const { days: numberOfDays, discount, vat, total: totalPrice, upfront: submittedAmount } = bookingPrice(car, bookingDetails)
     const babySeatCost = bookingDetails.babySeat ? 25 * numberOfDays : 0
-    const basePrice = car.priceDay * numberOfDays + babySeatCost
-    const discount = bookingDetails.payNow ? basePrice * 0.05 : 0
-    const vat = (basePrice - discount) * 0.05
-    const totalPrice = basePrice - discount + vat
-    const minPreBookAmount = totalPrice / 2
-    const preBookAmountNum = parseFloat(bookingDetails.preBookAmount)
-    const isPreBookAmountValid = !isNaN(preBookAmountNum) && preBookAmountNum >= minPreBookAmount
-
-    const submittedAmount = bookingDetails.payNow
-        ? (isPreBookAmountValid ? preBookAmountNum : 0)
-        : parseFloat(totalPrice.toFixed(2))
-    const bookingStatus = "confirmed"
 
     const handleInputChange = (field) => (e) => {
         setBookingDetails(prev => ({ ...prev, [field]: e.target.value }))
@@ -76,16 +55,13 @@ const BookingModal = ({ car, onClose }) => {
         setBookingDetails(prev => ({ ...prev, [field]: value }))
     }
 
-    const handleSetBoolean = (field, value) => () => {
-        setBookingDetails(prev => ({ ...prev, [field]: value }))
-    }
-
     const handleToggleChange = (field) => () => {
         setBookingDetails(prev => ({ ...prev, [field]: !prev[field] }))
     }
 
     const handleClear = () => {
         setBookingDetails(initialBookingState)
+        setError(null)
     }
 
     // Extract checkout URL from dynamic API payloads
@@ -109,26 +85,11 @@ const BookingModal = ({ car, onClose }) => {
         return foundUrl
     }
 
-    // Triggers the confirmation email for a created booking.
-    // Errors are swallowed on purpose: the booking itself already succeeded,
-    // so a failed email should never show the user a "Booking Failed" screen.
-    const sendBookingEmail = async (bookingId) => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/send-email/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            })
-            if (!res.ok) {
-                console.error("Send-email request failed with status", res.status)
-            }
-        } catch (err) {
-            console.error("Send-email error:", err)
-        }
-    }
-
     const handleConfirmBooking = async () => {
-        if (bookingDetails.payNow && !isPreBookAmountValid) {
-            setError(`Please enter at least AED ${minPreBookAmount.toFixed(0)} (50% of the total) to pre-book.`)
+        if (loading) return
+        const errors = validateBooking(bookingDetails)
+        if (errors.length) {
+            setError(errors.join(" "))
             return
         }
         setLoading(true)
@@ -141,13 +102,13 @@ const BookingModal = ({ car, onClose }) => {
             dropoff_date: bookingDetails.dropoffDate,
             pickup_time: bookingDetails.pickupTime,
             dropoff_time: bookingDetails.dropoffTime,
-            name: bookingDetails.name,
-            phone: bookingDetails.phone,
-            email: bookingDetails.email,
+            name: bookingDetails.name.trim(),
+            phone: "+971" + bookingDetails.phone.replace(/[\s-]/g, "").replace(/^0/, ""),
+            email: bookingDetails.email.trim(),
             baby_seat: bookingDetails.babySeat,
-            pay_now: bookingDetails.payNow,
+            pay_now: true,
             total_price: parseFloat(submittedAmount.toFixed(2)),
-            status: bookingStatus
+            status: "pending"
         }
 
         try {
@@ -163,7 +124,7 @@ const BookingModal = ({ car, onClose }) => {
                 let errorMessage = "Failed to create booking."
                 try {
                     const errorData = await response.json()
-                    errorMessage = errorData.detail || errorData.message || errorMessage
+                    errorMessage = errorData.detail || errorData.message || Object.values(errorData).flat().join(" ") || errorMessage
                 } catch {
                     errorMessage = `Request failed with status ${response.status}`
                 }
@@ -171,17 +132,11 @@ const BookingModal = ({ car, onClose }) => {
             }
 
             const data = await response.json()
-            const bookingId = data.id // adjust if your API nests it, e.g. data.booking?.id
-
-            // Decide based on what the server actually returned, not on local
-            // `payNow` state — this avoids any frontend/backend state mismatch
-            // (e.g. payNow being false at submit time even though the server
-            // sent back a checkout_url).
             const checkoutUrl = extractCheckoutUrl(data)
             const isValidCheckoutUrl = typeof checkoutUrl === "string" && /^https:\/\//.test(checkoutUrl)
 
             if (checkoutUrl && !isValidCheckoutUrl) {
-                console.error("Received malformed checkout URL:", checkoutUrl)
+                throw new Error("Payment setup returned an invalid checkout address.")
             }
 
             if (isValidCheckoutUrl) {
@@ -194,49 +149,12 @@ const BookingModal = ({ car, onClose }) => {
                 return
             }
 
-            if (bookingDetails.payNow) {
-                // We expected a checkout URL but didn't get one — treat as failure
-                // rather than silently falling through to "booking confirmed".
-                console.error("Expected checkout URL but none was returned:", data)
-                throw new Error("Payment setup failed. Please try again.")
-            }
-
-            // Pay Later booking succeeded (status is already "confirmed") -> send the confirmation email
-            if (bookingId) {
-                sendBookingEmail(bookingId) // intentionally not awaited, so the UI isn't blocked
-            }
-
-            setBookingConfirmed(true)
-            setLoading(false)
+            throw new Error("Payment setup failed. Please try again.")
         } catch (err) {
-            console.error("Booking API Error:", err)
             setError(err.message || "An unexpected error occurred during booking.")
             setBookingFailed(true)
             setLoading(false)
         }
-    }
-
-    if (bookingConfirmed) {
-        return (
-            <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                <motion.div
-                    className="relative w-full max-w-md bg-brand-card rounded-2xl p-10 text-center shadow-2xl border border-brand-gold/20"
-                    initial={{ scale: 0.9, y: 20, opacity: 0 }}
-                    animate={{ scale: 1, y: 0, opacity: 1 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                >
-                    <div className="w-20 h-20 bg-brand-gold/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Check className="text-brand-gold" size={44} />
-                    </div>
-                    <h2 className="font-heading font-bold text-brand-white text-heading-sm mb-3 uppercase tracking-wider">Booking Received!</h2>
-                    <p className="font-body text-brand-gray mb-8 leading-relaxed">Thank you for choosing Sleek. Your booking request has been sent. Our team will contact you shortly to confirm your reservation.</p>
-                    <button onClick={onClose} className="w-full bg-brand-gold text-brand-dark font-heading font-bold py-4 rounded-xl hover:bg-brand-gold-dark transition-all active:scale-95 cursor-pointer border-none">
-                        Done
-                    </button>
-                </motion.div>
-            </motion.div>
-        )
     }
 
     if (bookingFailed) {
@@ -313,7 +231,7 @@ const BookingModal = ({ car, onClose }) => {
                             </div>
 
                             {error && (
-                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg">
+                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg" role="alert">
                                     {error}
                                 </div>
                             )}
@@ -418,65 +336,12 @@ const BookingModal = ({ car, onClose }) => {
                                     </div>
                                 </button>
 
-                                {/* Payment Options */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button onClick={handleSetBoolean("payNow", false)} className={`flex flex-col gap-1 p-4 rounded-lg border transition-colors cursor-pointer bg-transparent text-left ${!bookingDetails.payNow ? "border-brand-gold" : "border-brand-border hover:border-brand-gold/50"}`}>
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${!bookingDetails.payNow ? "border-brand-gold" : "border-brand-border"}`}>
-                                                {!bookingDetails.payNow && <div className="w-2 h-2 rounded-full bg-brand-gold" />}
-                                            </div>
-                                            <span className="font-heading font-semibold text-brand-white text-body-sm">Pay Later</span>
-                                        </div>
-                                        <p className="font-body text-caption text-brand-gray pl-6">Pay on pickup</p>
-                                    </button>
-                                    <button onClick={handleSetBoolean("payNow", true)} className={`flex flex-col gap-1 p-4 rounded-lg border transition-colors cursor-pointer bg-transparent text-left ${bookingDetails.payNow ? "border-brand-gold" : "border-brand-border hover:border-brand-gold/50"}`}>
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${bookingDetails.payNow ? "border-brand-gold" : "border-brand-border"}`}>
-                                                {bookingDetails.payNow && <div className="w-2 h-2 rounded-full bg-brand-gold" />}
-                                            </div>
-                                            <span className="font-heading font-semibold text-brand-white text-body-sm">Pay Now</span>
-                                        </div>
-                                        <p className="font-body text-caption text-brand-gold pl-6">Enter amount to pre-book</p>
-                                    </button>
+                                <div className="p-4 rounded-lg border border-brand-gold">
+                                    <p className="font-heading font-semibold text-brand-white">Pay Now</p>
+                                    <p className="text-caption text-brand-gray mt-1">Pay 50% now to secure your booking. The remaining balance is due before vehicle handover.</p>
                                 </div>
                             </div>
-
-                            {bookingDetails.payNow ? (
-                                <div className="flex flex-col gap-3 p-4 rounded-xl bg-brand-darker border border-brand-border">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-heading font-semibold text-brand-white text-body-sm">Pre-book Amount</h4>
-                                        <span className="font-body text-caption text-brand-gray">AED</span>
-                                    </div>
-                                    <Input
-                                        type="number"
-                                        inputMode="decimal"
-                                        min={minPreBookAmount}
-                                        step="any"
-                                        placeholder={`Minimum AED ${minPreBookAmount.toFixed(0)}`}
-                                        value={bookingDetails.preBookAmount}
-                                        onChange={handleInputChange("preBookAmount")}
-                                        className="rounded-lg"
-                                    />
-                                    <p className="font-body text-caption text-brand-gray">
-                                        Minimum 50% of total: AED {minPreBookAmount.toFixed(0)} (full total AED {totalPrice.toFixed(0)})
-                                    </p>
-                                    <div className="flex justify-between items-center min-h-7 border-t border-brand-border pt-2">
-                                        {isPreBookAmountValid ? (
-                                            <>
-                                                <span className="font-heading font-bold text-brand-white text-body">Amount to Pre-book</span>
-                                                <span className="font-heading font-bold text-brand-gold text-body">AED {preBookAmountNum.toLocaleString()}</span>
-                                            </>
-                                        ) : bookingDetails.preBookAmount !== "" ? (
-                                            <p className="font-body text-body text-red-400">
-                                                Minimum AED {minPreBookAmount.toFixed(0)} required (50% of total).
-                                            </p>
-                                        ) : (
-                                            <span className="font-body text-body text-brand-gray">Enter an amount to continue</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3 p-4 rounded-xl bg-brand-darker border border-brand-border">
+                            <div className="flex flex-col gap-3 p-4 rounded-xl bg-brand-darker border border-brand-border">
                                     <h4 className="font-heading font-semibold text-brand-white text-body-sm">Booking Summary</h4>
                                     <div className="flex flex-col gap-2">
                                         <div className="flex justify-between">
@@ -491,29 +356,38 @@ const BookingModal = ({ car, onClose }) => {
                                         )}
                                         <div className="flex justify-between">
                                             <span className="font-body text-body-sm text-brand-gray">VAT (5%)</span>
-                                            <span className="font-body text-body-sm text-brand-white">AED {vat.toFixed(0)}</span>
+                                            <span className="font-body text-body-sm text-brand-white">AED {vat.toFixed(2)}</span>
                                         </div>
+                                        <div className="flex justify-between text-body-sm text-brand-gray"><span>Pay Now discount (5%)</span><span>− AED {discount.toFixed(2)}</span></div>
                                         <div className="h-px bg-brand-border my-1" />
                                         <div className="flex justify-between">
                                             <span className="font-heading font-bold text-brand-white text-body">Total</span>
-                                            <span className="font-heading font-bold text-brand-gold text-body">AED {totalPrice.toFixed(0)}</span>
+                                            <span className="font-heading font-bold text-brand-gold text-body">AED {totalPrice.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            <div className="flex justify-between text-brand-gold font-semibold"><span>Pay now (50%)</span><span>AED {submittedAmount.toFixed(2)}</span></div>
+                            <div className="flex justify-between text-sm text-brand-gray"><span>Remaining balance</span><span>AED {(totalPrice - submittedAmount).toFixed(2)}</span></div>
+                        </div>
+
+                        <div className="px-6 pb-6">
+                            <RentalConditions />
                         </div>
 
                         {/* Action Buttons */}
+                        <p className="px-6 pb-4 text-caption text-brand-gray leading-relaxed">
+                            Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-brand-gold underline">Terms &amp; Conditions</a> before confirming your booking. Your rental is also subject to the booking confirmation and rental agreement.
+                        </p>
                         <div className="flex gap-3 p-6 pt-0 shrink-0">
                             <button onClick={handleClear} className="flex-1 font-heading font-semibold text-body-sm text-brand-gray border border-brand-border py-3 rounded-lg hover:border-brand-gold/50 hover:text-brand-white transition-colors cursor-pointer bg-transparent">
                                 Clear
                             </button>
                             <button
                                 onClick={handleConfirmBooking}
-                                disabled={loading || (bookingDetails.payNow && !isPreBookAmountValid)}
+                                disabled={loading}
                                 className="flex-[2] font-heading font-semibold text-body-sm text-brand-dark bg-brand-gold py-3 rounded-lg hover:bg-brand-gold-dark transition-colors cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? "Booking..." : "Confirm Booking"}
+                                {loading ? "Opening payment..." : `Pay AED ${submittedAmount.toFixed(2)} Now`}
                             </button>
                         </div>
                     </div>
