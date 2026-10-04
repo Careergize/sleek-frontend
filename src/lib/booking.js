@@ -14,7 +14,7 @@ export function validateBooking(details, now = Date.now()) {
     if (!details.pickupTime) errors.push("Select a pickup time.")
     if (!details.dropoffTime) errors.push("Select a drop-off time.")
     if (Number.isFinite(pickup) && pickup <= now) errors.push("Pickup must be in the future (Dubai time).")
-    if (Number.isFinite(pickup) && Number.isFinite(dropoff) && dropoff - pickup < 72 * 3600000) errors.push("Your rental must be at least 72 hours; drop-off must follow pickup.")
+    if (Number.isFinite(pickup) && Number.isFinite(dropoff) && dropoff - pickup < 24 * 3600000) errors.push("Your rental must be at least 1 day (24 hours); drop-off must follow pickup.")
     if (details.name.trim().length < 2 || details.name.trim().length > 255) errors.push("Enter your full name (2–255 characters).")
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.email.trim())) errors.push("Enter a valid email address.")
     if (!/^0?5\d{8}$/.test(details.phone.replace(/[\s-]/g, ""))) errors.push("Enter a valid UAE mobile number, such as 50 123 4567.")
@@ -23,7 +23,7 @@ export function validateBooking(details, now = Date.now()) {
 
 export function bookingPrice(car, details) {
     const duration = bookingDateTime(details.dropoffDate, details.dropoffTime) - bookingDateTime(details.pickupDate, details.pickupTime)
-    const days = Number.isFinite(duration) ? Math.max(3, Math.ceil(duration / 86400000)) : 3
+    const days = Number.isFinite(duration) ? Math.max(1, Math.ceil(duration / 86400000)) : 1
     const base = Number(car.priceDay) * days + (details.babySeat ? 25 * days : 0)
     const discount = base * 0.05
     const vat = (base - discount) * 0.05
