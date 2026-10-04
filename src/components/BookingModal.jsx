@@ -12,7 +12,7 @@ import {
 
 import { API_BASE_URL } from "@/config"
 import RentalConditions from "@/components/RentalConditions"
-import { bookingPrice, validateBooking } from "@/lib/booking"
+import { bookingPrice, normalizeBookingPhone, validateBooking } from "@/lib/booking"
 
 const TIME_OPTIONS = [
     "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
@@ -49,10 +49,12 @@ const BookingModal = ({ car, onClose }) => {
 
     const handleInputChange = (field) => (e) => {
         setBookingDetails(prev => ({ ...prev, [field]: e.target.value }))
+        setError(null)
     }
 
     const handleSelectChange = (field) => (value) => {
         setBookingDetails(prev => ({ ...prev, [field]: value }))
+        setError(null)
     }
 
     const handleToggleChange = (field) => () => {
@@ -103,7 +105,7 @@ const BookingModal = ({ car, onClose }) => {
             pickup_time: bookingDetails.pickupTime,
             dropoff_time: bookingDetails.dropoffTime,
             name: bookingDetails.name.trim(),
-            phone: "+971" + bookingDetails.phone.replace(/[\s-]/g, "").replace(/^0/, ""),
+            phone: normalizeBookingPhone(bookingDetails.phone),
             email: bookingDetails.email.trim(),
             baby_seat: bookingDetails.babySeat,
             pay_now: true,
@@ -171,7 +173,7 @@ const BookingModal = ({ car, onClose }) => {
                         <X className="text-red-500" size={44} />
                     </div>
                     <h2 className="font-heading font-bold text-brand-white text-heading-sm mb-3 uppercase tracking-wider">Booking Failed</h2>
-                    <p className="font-body text-brand-gray mb-8 leading-relaxed">We encountered an issue while processing your booking. Please try again or contact us via WhatsApp for immediate assistance.</p>
+                    <p role="alert" className="font-body text-brand-gray mb-8 leading-relaxed">{error || "We encountered an issue while processing your booking. Please try again or contact us via WhatsApp for immediate assistance."}</p>
                     <div className="flex flex-col gap-3">
                         <a
                             href={`https://wa.me/971507023899?text=Hi, I tried to book the ${car.brand} ${car.name} but the request failed. Can you help?`}
@@ -229,12 +231,6 @@ const BookingModal = ({ car, onClose }) => {
                                 <h2 className="font-heading font-bold text-brand-white text-heading-sm">Book Your Ride</h2>
                                 <p className="font-body text-body-sm text-brand-gray mt-1">Fill in the details to confirm your booking</p>
                             </div>
-
-                            {error && (
-                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg" role="alert">
-                                    {error}
-                                </div>
-                            )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Pickup Date */}
@@ -378,6 +374,11 @@ const BookingModal = ({ car, onClose }) => {
                         <p className="px-6 pb-4 text-caption text-brand-gray leading-relaxed">
                             Please review our <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="text-brand-gold underline">Terms &amp; Conditions</a> before confirming your booking. Your rental is also subject to the booking confirmation and rental agreement.
                         </p>
+                        {error && (
+                            <div className="mx-6 mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg" role="alert">
+                                {error}
+                            </div>
+                        )}
                         <div className="flex gap-3 p-6 pt-0 shrink-0">
                             <button onClick={handleClear} className="flex-1 font-heading font-semibold text-body-sm text-brand-gray border border-brand-border py-3 rounded-lg hover:border-brand-gold/50 hover:text-brand-white transition-colors cursor-pointer bg-transparent">
                                 Clear
